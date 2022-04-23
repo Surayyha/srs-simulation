@@ -1,0 +1,125 @@
+---
+title: "Kernel Density Estimator versus Histogram in Density Estimation"
+author: "Suran Li"
+output: bookdown::pdf_document2: default
+bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+library(bookdown)
+library(tibble)
+library(ggplot2)
+library(locfit)
+```
+
+## Introduction
+
+Density estimation builds an estimate of some underlying probability density function using an observed data sample. The kernel density estimator (KDE) is one of the most famous method for density estimation. This report mainly interests in the performance of KDE comparing with other density estimators. As the KDE is nonparametric, other two nonparametric methods are chosen, the oldest method histograms, and a penalized approach local likelihood density estimation. In order to investigate these three methods, three simulation scenarios are designed in this report. The aim of this report is to provide a comparison between KDE, histograms and local likelihood density estimation in the context of estimating density for simulated data based on ISE (Integrated Squared Error).
+
+The report is structed as follows: in Section 2 methods are described. Data generating processes and preliminary experiments are described in Section 3. The information of monte carlo simulation study is reported in Section 4. Finally, some remarks and conclusion are provided in Section 5.
+
+## Methods
+
+### Histogram
+
+The histogram [@silverman_density_1998] is the simplest method to estimate a density $f$ from iid samples $X_1,...,X_n$. The idea is to aggregate the data in intervals. For the given origin $t_0$ and bandwidth $h$, the histogram builds a piece wise constant function in the intervals ${B_k=[t_k,t_{k+1}):t_k=t_0+hk,k\in Z}$ by counting the number of sample points inside each of them. These constant-length intervals are also called bins. The histogram at a point $x$ is:
+
+$$\hat{f}(x)=\frac{1}{nh}\sum_{i = 1}^{n} I_{(X_i\in B_k: x \in B_k)}$$
+
+The fact they have constant length $h$ is important, since it allows to standardize by $h$ in order to have relative frequencies in the bins.
+
+### KDE
+
+The kernel density estimation approach [@scott_multivariate_1992] centers a smooth kernel function at each data point then sum to get a density estimate. Let $X_1,...,X_n \sim f$, the basic kernel estimator can be expressed as
+
+$$\hat{f}(x)=\frac{1}{n}\sum_{i = 1}^{n}K_h(x-X_i)$$
+
+where $K$ is the kernel, a symmetric, usually positive function that integrates to one. $K_h(.)=K(.)/h$. $h$ is the bandwidth, a smoothing parameter, large bandwidths produce very smooth estimates, small values produce wiggly estimates. For the convenience of analysis, the default kernel function "Gaussian" and bandwidth in R are applied.
+
+### Local likelihood density estimation
+
+The main idea of penalized likelihood approaches is to estimate the density as a mixture of "basis" functions (densities), in which the local likelihood method [@loader_local_1999] solves local optimization problems motivated by bias-variance considerations. Suppose observations $X_1,...,X_n$ have an unknown density $f$, consider the log-likelihood function
+
+$$L(f)=\sum_{i = 1}^{n}log(f(X_i))-n(\int_{\chi}f(u)du-1)$$
+where $\chi$ is the domain of the density, $n(\int_{\chi}f(u)du-1)$ is a penalty term which means if $f$ is a density, the penalty is 0. The local version of that is defined as
+
+$$L_x(f)=\sum_{i = 1}^{n}K(\frac{X_i-x}{h})log(f(X_i))-n\int_{\chi}K(\frac{u-x}{h})f(u)du$$
+Consider a local polynomial approximation for $log(f(u))$, $log(f(u))\approx <a,A(u-x)>$ in a neighborhood of $x$. The local likelihood becomes
+
+$$L_x(a)=\sum_{i = 1}^{n}K(\frac{X_i-x}{h})<a,A(X_i-x)>-n\int_{\chi}K(\frac{u-x}{h})exp(<a,A(u-x)>)du$$
+Let $\hat{a}=(\hat{a_0},...,\hat{a_p})^{T}$ be the maximizer of the local log-likelihood. The local likelihood density estimation is defined as 
+
+$\hat{f}(x)=exp(\hat{a_0})$.
+
+
+## Data Generating Processes and Preliminary Experiments
+
+In this section, a one-shot experiment is implemented to compare the performances of three different density estimation methods based on several different simulation scenarios. An intuitive view of the comparison is drawn in this part.
+
+### Simulation scenarios
+
+To draw the conclusions regarding the reliability of the results, simulated scenarios are necessary. The idea is to generate 5000 samples from each known distribution. Herein, three different scenarios are produced as follows:
+
+* Standard normal distribution ($f_1$): This is the simplest case of a normal distribution when $\mu=0$ and $\sigma=1$. The probability density function is described as
+
+$$f_1(x)=\frac{1}{\sqrt{2\pi}}e^{-\frac{x^2}{2}}$$;
+
+* Mixture of normal distribution ($f_2$): To construct a bimodal distribution, two normal distributions $N(0,1)$ and $N(5,0.25)$ are mixed to generate simulated data. The probability density function is 
+
+$$f_2(x)=\frac{w}{\sqrt{2\pi}}e^{-\frac{x^2}{2}}+\frac{2(1-w)}{\sqrt{2\pi}}e^{-2(x-5)^2}$$;
+
+where $w$ is the weight, following the binomial distribution with $p=0.5$. The shape of this mixture distribution is binomal.
+
+* log-normal distribution ($f_3$): To investigate the performances of density estimation methods on the heavy-tailed data, log-normal distribution with $\mu=0, \sigma=1$ is chosen. The probability density function is
+
+$$f_3(x)=\frac{1}{x\sqrt{2\pi}}e^{-\frac{ln(x)^2}{2\sigma^2}}$$.
+
+### Results
+
+\@ref(fig:sn)
+
+```{r }
+set.seed(9) 
+n=5000
+w=rbinom(n,1,0.5)
+## sample from three scenarios
+sam_5000 <- as_tibble(data.frame(standnorm=rnorm(n, mean = 0, sd = 1),
+                      mixnorm=w*rnorm(n, mean = 0, sd = 1)+(1-w)*rnorm(n,mean=5,sd=0.5),
+                      lognorm=rlnorm(n,0,1)))
+
+## estimate using three methods
+loc_sn = locfit(~ lp(sam_5000$standnorm))
+loc_mn = locfit(~ lp(sam_5000$mixnorm))
+loc_ln = locfit(~ lp(sam_5000$lognorm))
+```
+
+```{r sn, fig.cap="estimated density for standard normal distribution"}
+ggplot(data = sam_5000,aes(x=standnorm))+
+  geom_histogram(aes(y = ..density..),color = "black", fill = "steelblue",alpha = 0.2)+
+  geom_line(aes(y=dnorm(standnorm,0,1), color = "true density"))+
+  geom_density(aes(color="KDE"))+
+  geom_line(aes(y=fitted(loc_sn),color="locfit"))+
+  scale_colour_manual("Density", values = c("blue", "red", "black"))+
+  xlab("standard normal distribution")
+```
+```{r mn, fig.cap="estimated density for mixture normal distribution"}
+ggplot(data = sam_5000,aes(x=mixnorm))+
+  geom_histogram(aes(y = ..density..),color = "black", fill = "steelblue",alpha = 0.2)+
+  geom_line(aes(y=0.5*dnorm(mixnorm, mean = 0, sd = 1)+0.5*dnorm(mixnorm,mean=5,sd=0.5),color = "true density"))+
+  geom_density(aes(color="KDE"))+
+  geom_line(aes(y=fitted(loc_mn),color="locfit"))+
+  scale_colour_manual("Density", values = c("blue", "red", "black"))+
+  xlab("bimodal distribution")
+```
+```{r ln, fig.cap="estimated density for log-normal distribution"}
+ggplot(data = sam_5000,aes(x=lognorm))+
+  geom_histogram(aes(y = ..density..),color = "black", fill = "steelblue",alpha = 0.2)+
+  geom_line(aes(y=dlnorm(lognorm,0,1),color = "true density"))+
+  geom_density(aes(color="KDE"))+
+  geom_line(aes(y=fitted(loc_ln),color="locfit"))+
+  scale_colour_manual("Density", values = c("blue", "red", "black"))+
+  xlab("log-normal distribution")
+```
+
