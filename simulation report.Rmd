@@ -1,58 +1,80 @@
 ---
 title: "Kernel Density Estimator versus Histogram in Density Estimation"
 author: "Suran Li"
-output: bookdown::pdf_document2: default
-bibliography: references.bib
+output: 
+  bookdown::pdf_document2: default
+bibliography: citations.bib
 link-citations: yes
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE,warning = FALSE)
 library(bookdown)
 library(tibble)
 library(ggplot2)
 library(locfit)
+library(cubature)
 ```
 
 ## Introduction
 
-Density estimation builds an estimate of some underlying probability density function using an observed data sample. The kernel density estimator (KDE) is one of the most famous method for density estimation. This report mainly interests in the performance of KDE comparing with other density estimators. As the KDE is nonparametric, other two nonparametric methods are chosen, the oldest method histograms, and a penalized approach local likelihood density estimation. In order to investigate these three methods, three simulation scenarios are designed in this report. The aim of this report is to provide a comparison between KDE, histograms and local likelihood density estimation in the context of estimating density for simulated data based on ISE (Integrated Squared Error).
+Using an observed data sample, density estimation creates an estimate of some underlying probability density function. One of the most well-known methods for density estimation is the kernel density estimator (KDE). The performance of KDE in comparison to alternative density estimators is the focus of this report. Because the KDE is nonparametric, the oldest method, histograms, and a penalized approach, local likelihood density estimation, were chosen. Three simulation scenarios are constructed in this report to explore these three methodologies. The purpose of this paper is to compare KDE, histograms, and local likelihood density estimation in the context of estimating density for simulated data using the ISE (Integrated Squared Error).
 
-The report is structed as follows: in Section 2 methods are described. Data generating processes and preliminary experiments are described in Section 3. The information of monte carlo simulation study is reported in Section 4. Finally, some remarks and conclusion are provided in Section 5.
+The report is organised as follows: Section 2 describes the methodologies. Section 3 describes the data generating procedures and preliminary experiments. Section 4 contains the results of the Monte Carlo simulation investigation. Section 5 concludes with some remarks and a conclusion.
 
 ## Methods
 
 ### Histogram
 
-The histogram [@silverman_density_1998] is the simplest method to estimate a density $f$ from iid samples $X_1,...,X_n$. The idea is to aggregate the data in intervals. For the given origin $t_0$ and bandwidth $h$, the histogram builds a piece wise constant function in the intervals ${B_k=[t_k,t_{k+1}):t_k=t_0+hk,k\in Z}$ by counting the number of sample points inside each of them. These constant-length intervals are also called bins. The histogram at a point $x$ is:
+The histogram [@silverman_density_1998] is the most straightforward way to estimate a density $f$ from iid samples $X_1,...,X_n$. The idea is to aggregate the data in intervals. The histogram produces a piecewise constant function in the intervals ${B_k=[t_k,t_{k+1}):t_k=t_0+hk,k\in Z}$ for the provided origin $t_0$ and bandwidth $h$ by counting the number of sample points inside each of them. Bins are the term for these constant-length intervals. The histogram at a point $x$ is:
 
+\begin{equation}
 $$\hat{f}(x)=\frac{1}{nh}\sum_{i = 1}^{n} I_{(X_i\in B_k: x \in B_k)}$$
+(\#eq:hist)
+\end{equation}
 
-The fact they have constant length $h$ is important, since it allows to standardize by $h$ in order to have relative frequencies in the bins.
+The fact they have constant length $h$ is important, since it enables standardisation by $h$ in order to obtain relative frequencies in the bins.
 
 ### KDE
 
 The kernel density estimation approach [@scott_multivariate_1992] centers a smooth kernel function at each data point then sum to get a density estimate. Let $X_1,...,X_n \sim f$, the basic kernel estimator can be expressed as
 
+\begin{equation}
 $$\hat{f}(x)=\frac{1}{n}\sum_{i = 1}^{n}K_h(x-X_i)$$
+(\#eq:kde)
+\end{equation}
 
-where $K$ is the kernel, a symmetric, usually positive function that integrates to one. $K_h(.)=K(.)/h$. $h$ is the bandwidth, a smoothing parameter, large bandwidths produce very smooth estimates, small values produce wiggly estimates. For the convenience of analysis, the default kernel function "Gaussian" and bandwidth in R are applied.
+where $K$ is the kernel, a symmetric, usually positive function that integrates to one. $K_h(.)=K(.)/h$. The bandwidth ($h$) is a smoothing parameter; large bandwidths give smooth estimates, whereas small bandwidths produce wavy estimates. The default kernel function "Gaussian" and bandwidth in R are applied for analysis ease.
 
 ### Local likelihood density estimation
 
 The main idea of penalized likelihood approaches is to estimate the density as a mixture of "basis" functions (densities), in which the local likelihood method [@loader_local_1999] solves local optimization problems motivated by bias-variance considerations. Suppose observations $X_1,...,X_n$ have an unknown density $f$, consider the log-likelihood function
 
+\begin{equation}
 $$L(f)=\sum_{i = 1}^{n}log(f(X_i))-n(\int_{\chi}f(u)du-1)$$
+(\#eq:locf1)
+\end{equation}
+
 where $\chi$ is the domain of the density, $n(\int_{\chi}f(u)du-1)$ is a penalty term which means if $f$ is a density, the penalty is 0. The local version of that is defined as
 
+\begin{equation}
 $$L_x(f)=\sum_{i = 1}^{n}K(\frac{X_i-x}{h})log(f(X_i))-n\int_{\chi}K(\frac{u-x}{h})f(u)du$$
+(\#eq:locf2)
+\end{equation}
+
 Consider a local polynomial approximation for $log(f(u))$, $log(f(u))\approx <a,A(u-x)>$ in a neighborhood of $x$. The local likelihood becomes
 
+\begin{equation}
 $$L_x(a)=\sum_{i = 1}^{n}K(\frac{X_i-x}{h})<a,A(X_i-x)>-n\int_{\chi}K(\frac{u-x}{h})exp(<a,A(u-x)>)du$$
+(\#eq:locf3)
+\end{equation}
+
 Let $\hat{a}=(\hat{a_0},...,\hat{a_p})^{T}$ be the maximizer of the local log-likelihood. The local likelihood density estimation is defined as 
 
+\begin{equation}
 $\hat{f}(x)=exp(\hat{a_0})$.
-
+(\#eq:locf4)
+\end{equation}
 
 ## Data Generating Processes and Preliminary Experiments
 
@@ -62,64 +84,243 @@ In this section, a one-shot experiment is implemented to compare the performance
 
 To draw the conclusions regarding the reliability of the results, simulated scenarios are necessary. The idea is to generate 5000 samples from each known distribution. Herein, three different scenarios are produced as follows:
 
-* Standard normal distribution ($f_1$): This is the simplest case of a normal distribution when $\mu=0$ and $\sigma=1$. The probability density function is described as
+* Uniform distribution ($f_1$): This is a distribution whose arbitrary outcome that lies between certain bounds. The probability density function $U(1,3)$ used in this analysis is described as
 
-$$f_1(x)=\frac{1}{\sqrt{2\pi}}e^{-\frac{x^2}{2}}$$;
+\begin{equation}
+$$f_1(x)=\left\{
+    \begin{array}{ll}
+        \frac{1}{2} & \mbox{for 1} \le x \le 3,  \\
+        0 & \mbox{otherwise.}
+    \end{array}
+\right.$$
+(\#eq:uni)
+\end{equation}
+
+In this case, the domain of the distribution is bounded between 1 and 3.
 
 * Mixture of normal distribution ($f_2$): To construct a bimodal distribution, two normal distributions $N(0,1)$ and $N(5,0.25)$ are mixed to generate simulated data. The probability density function is 
 
-$$f_2(x)=\frac{w}{\sqrt{2\pi}}e^{-\frac{x^2}{2}}+\frac{2(1-w)}{\sqrt{2\pi}}e^{-2(x-5)^2}$$;
+\begin{equation}
+$$f_2(x)=\frac{w}{\sqrt{2\pi}}e^{-\frac{x^2}{2}}+\frac{2(1-w)}{\sqrt{2\pi}}e^{-2(x-5)^2}$$
+(\#eq:mixn)
+\end{equation}
 
-where $w$ is the weight, following the binomial distribution with $p=0.5$. The shape of this mixture distribution is binomal.
+where $w$ is the weight, following the binomial distribution with $p=0.5$. The shape of this mixture distribution is binomal;
 
 * log-normal distribution ($f_3$): To investigate the performances of density estimation methods on the heavy-tailed data, log-normal distribution with $\mu=0, \sigma=1$ is chosen. The probability density function is
 
-$$f_3(x)=\frac{1}{x\sqrt{2\pi}}e^{-\frac{ln(x)^2}{2\sigma^2}}$$.
+\begin{equation}
+$$f_3(x)=\frac{1}{x\sqrt{2\pi}}e^{-\frac{ln(x)^2}{2\sigma^2}}.$$
+(\#eq:logn)
+\end{equation}
 
 ### Results
 
-\@ref(fig:sn)
+In the preliminary experiment, 5000 samples are drawn from each of these three scenarios. The estimated density based on samples for three methods are displayed in the plot \@ref(fig:sn). 
 
 ```{r }
 set.seed(9) 
 n=5000
 w=rbinom(n,1,0.5)
 ## sample from three scenarios
-sam_5000 <- as_tibble(data.frame(standnorm=rnorm(n, mean = 0, sd = 1),
+sam_5000 <- as_tibble(data.frame(unif=runif(n, 1,3),
                       mixnorm=w*rnorm(n, mean = 0, sd = 1)+(1-w)*rnorm(n,mean=5,sd=0.5),
                       lognorm=rlnorm(n,0,1)))
 
 ## estimate using three methods
-loc_sn = locfit(~ lp(sam_5000$standnorm))
+loc_un = locfit(~ lp(sam_5000$unif))
 loc_mn = locfit(~ lp(sam_5000$mixnorm))
 loc_ln = locfit(~ lp(sam_5000$lognorm))
 ```
 
-```{r sn, fig.cap="estimated density for standard normal distribution"}
-ggplot(data = sam_5000,aes(x=standnorm))+
-  geom_histogram(aes(y = ..density..),color = "black", fill = "steelblue",alpha = 0.2)+
-  geom_line(aes(y=dnorm(standnorm,0,1), color = "true density"))+
-  geom_density(aes(color="KDE"))+
-  geom_line(aes(y=fitted(loc_sn),color="locfit"))+
-  scale_colour_manual("Density", values = c("blue", "red", "black"))+
-  xlab("standard normal distribution")
+```{r}
+library(gridExtra)
+get_legend<-function(myggplot){
+  tmp <- ggplot_gtable(ggplot_build(myggplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)
+}
 ```
-```{r mn, fig.cap="estimated density for mixture normal distribution"}
-ggplot(data = sam_5000,aes(x=mixnorm))+
+
+```{r sn, fig.cap="Estimated densities against true densities"}
+#par(mfrow=c(1,3))
+
+f1<-ggplot(data = sam_5000,aes(x=unif))+
+  geom_histogram(aes(y = ..density..),color = "black", fill = "steelblue",alpha = 0.2)+
+  geom_line(aes(y=dunif(unif,1,3), color = "true density"))+
+  geom_density(aes(color="KDE"))+
+  geom_line(aes(y=fitted(loc_un),color="locfit"))+
+  scale_colour_manual("Density", values = c("blue", "red","black"))+
+  labs(subtitle="f1",x="uniform distribution")+
+  theme(legend.position = "top")
+
+f2<-ggplot(data = sam_5000,aes(x=mixnorm))+
   geom_histogram(aes(y = ..density..),color = "black", fill = "steelblue",alpha = 0.2)+
   geom_line(aes(y=0.5*dnorm(mixnorm, mean = 0, sd = 1)+0.5*dnorm(mixnorm,mean=5,sd=0.5),color = "true density"))+
   geom_density(aes(color="KDE"))+
   geom_line(aes(y=fitted(loc_mn),color="locfit"))+
-  scale_colour_manual("Density", values = c("blue", "red", "black"))+
-  xlab("bimodal distribution")
-```
-```{r ln, fig.cap="estimated density for log-normal distribution"}
-ggplot(data = sam_5000,aes(x=lognorm))+
+  scale_colour_manual("Density", values = c("blue", "red","black"))+
+  labs(subtitle="f2",x="bimodal distribution")
+
+f3<-ggplot(data = sam_5000,aes(x=lognorm))+
   geom_histogram(aes(y = ..density..),color = "black", fill = "steelblue",alpha = 0.2)+
   geom_line(aes(y=dlnorm(lognorm,0,1),color = "true density"))+
   geom_density(aes(color="KDE"))+
   geom_line(aes(y=fitted(loc_ln),color="locfit"))+
-  scale_colour_manual("Density", values = c("blue", "red", "black"))+
-  xlab("log-normal distribution")
+  scale_colour_manual("Density", values = c("blue", "red","black"))+
+  labs(subtitle="f3",x="log-normal distribution")
+
+legend <- get_legend(f1)
+# 3. Remove the legend from the box plot
+#+++++++++++++++++++++++
+f1 <- f1 + theme(legend.position="none")
+f2 <- f2 + theme(legend.position="none")
+f3 <- f3 + theme(legend.position="none")
+# 4. Arrange ggplot2 graphs with a specific width
+
+grid.arrange(f1, f2, f3, legend, ncol=3, nrow = 2, 
+             layout_matrix = rbind(c(1,2,3), c(4)),heights = c(2.0, 0.2))
 ```
+
+For the uniform distribution $f_1(x)$, the true density is a straight line, and only the histogram works well, the bars of which fluctuate around the true density. Both The red line (local density estimator) and the blue line (KDE) loss the trend near the boundaries. For the bimodal distribution $f_2(x)$, there are two different modes appearing as distinct peaks. From the plot, the histogram estimates the shape well, while the KDE slightly misses both peaks. However, the most apparent problem comes from the local likelihood density estimation, the estimated density roughly catches the trend but significantly misses peaks and low points. For the heavy-tailed distribution, both KDE and local estimator estimate the  density well, but the local estimator catch the peak slightly better. However, the histogram is less concentrated than the true density.
+
+After displaying the performances, the main advantages of histograms are extreme simplicity and speed of computation, catch the bounded density well. However, it can be extremely sensitive to the choice of the bins. As a result, the problems with histograms are that they are not smooth, depend on the width of the bins and the bins edge. The disadvantages of histograms provide the motivation for KDE. The KDE centres a kernel function at each data point to remove the dependence on the end points of the bins and a smooth density estimate could be given by KDE if using the smooth kernel function such as the Gaussian used here. However, the performance of it on the boundary of density is bad. The same drawback can be seen from the local likelihood method as well, and the local estimator tends to flatten the peaks and bottoms more, but it seems having advantage when estimating the heavy-tailed distribution.
+
+##  Monte Carlo Simulation Study
+
+In this section, monte carlo simulation studies among three sample sizes $n=250,500,1000$ are presented. The algorithm is described as follows:
+
+* Draw samples from three true densities $f_1,f_2,f_3$ with the samples sizes $n=250,500,1000$ separately, then there are three data sets with different sample sizes for each density;
+
+* Calculate the ISE (Integrated Squared Error) for each data set, where $ISE=\int{(\hat{f}(x)-f(x))^2}dx$. 
+
+* Repeat the steps above for 5000 times, then there are 5000 ISE values for each scenario using each estimation method with the fixed sample size. Get the average ISE for each group.
+
+```{r}
+size250=size500=size1000=as_tibble(data.frame(scenario=rep(c("f1","f2","f3"),each=3),method=rep(c("histogram","KDE","locfit"),3),ise =rep(0,9)))
+
+## ise for Scenario 1 
+runs = 5000
+one.trial.f1 <- function(size){
+  sam = sort(runif(size, 1, 3),decreasing = FALSE)
+  sam_y=dunif(sam,1,3)
+  his = hist(sam,plot = FALSE)
+  his_den=rep(his$density,his$counts)
+  splxy.his = splinefun(sam, (his_den - sam_y)^2)
+  ise.hist=cubintegrate(splxy.his, lower = min(sam), upper = max(sam),method="pcubature")$integral
+  kde = density(sam)
+  splxy.kde = splinefun(kde$x, (kde$y - dunif(kde$x,1,3))^2)
+  ise.kde=cubintegrate(splxy.kde, lower = min(sam), upper = max(sam),method="pcubature")$integral
+  loc = locfit( ~ lp(sam))
+  splxy.loc = splinefun(sam, (fitted(loc) - sam_y)^2)
+  ise.loc=cubintegrate(splxy.loc, lower = min(sam), upper = max(sam),method="pcubature")$integral
+  return(c(ise.hist,ise.kde,ise.loc))
+}
+## now we repeat that trial 'runs' times.
+size250[1:3,3] <- apply(replicate(runs,one.trial.f1(250)),1,sum)/runs
+size500[1:3,3] <- apply(replicate(runs,one.trial.f1(500)),1,sum)/runs
+size1000[1:3,3] <- apply(replicate(runs,one.trial.f1(1000)),1,sum)/runs
+
+## ise for Scenario 2 
+one.trial.f2 <- function(size){
+  w=rbinom(size,1,0.5)
+  sam = sort(w*rnorm(size, mean = 0, sd = 1)+(1-w)*rnorm(size,mean=5,sd=0.5),decreasing = FALSE)
+  his = hist(sam,plot = FALSE)
+  his_den=rep(his$density,his$counts)
+  splxy.his = splinefun(sam, 
+                        (his_den - 0.5*dnorm(sam, mean = 0, sd = 1)-
+                           0.5*dnorm(sam,mean=5,sd=0.5))^2)
+  ise.hist=cubintegrate(splxy.his, lower = min(sam), upper = max(sam),method="pcubature")$integral
+  kde = density(sam)
+  splxy.kde = splinefun(kde$x, 
+                        (kde$y - 0.5*dnorm(kde$x, mean = 0, sd = 1)-
+                           0.5*dnorm(kde$x,mean=5,sd=0.5))^2)
+  ise.kde=cubintegrate(splxy.kde, lower = min(sam), upper = max(sam),method="pcubature")$integral
+  loc = locfit( ~ lp(sam))
+  splxy.loc = splinefun(sam, 
+                        (fitted(loc) - 0.5*dnorm(sam, mean = 0, sd = 1)-
+                           0.5*dnorm(sam,mean=5,sd=0.5))^2)
+  ise.loc=cubintegrate(splxy.loc, lower = min(sam), upper = max(sam),method="pcubature")$integral
+  return(c(ise.hist,ise.kde,ise.loc))
+}
+
+## now we repeat that trial 'runs' times.
+size250[4:6,3] <- apply(replicate(runs,one.trial.f2(250)),1,sum)/runs
+size500[4:6,3] <- apply(replicate(runs,one.trial.f2(500)),1,sum)/runs
+size1000[4:6,3] <- apply(replicate(runs,one.trial.f2(1000)),1,sum)/runs
+
+## ise for Scenario 2 
+one.trial.f3 <- function(size){
+  sam = sort(rlnorm(size, 0, 1),decreasing = FALSE)
+  his = hist(sam,plot = FALSE)
+  his_den = rep(his$density,his$counts)
+  splxy.his = splinefun(sam, (his_den - dlnorm(sam,0,1))^2)
+  ise.hist=cubintegrate(splxy.his, lower = min(sam), upper = max(sam),method="pcubature")$integral
+  kde = density(sam)
+  splxy.kde = splinefun(kde$x, (kde$y - dlnorm(kde$x,0,1))^2)
+  ise.kde=cubintegrate(splxy.kde, lower = min(sam), upper = max(sam),method="pcubature")$integral
+  loc = locfit( ~ lp(sam))
+  splxy.loc = splinefun(sam, (fitted(loc) - dlnorm(sam,0,1))^2)
+  ise.loc=cubintegrate(splxy.loc, lower = min(sam), upper = max(sam),method="pcubature")$integral
+  return(c(ise.hist,ise.kde,ise.loc))
+}
+## now we repeat that trial 'runs' times.
+size250[7:9,3] <- apply(replicate(runs,one.trial.f3(250)),1,sum)/runs
+size500[7:9,3] <- apply(replicate(runs,one.trial.f3(500)),1,sum)/runs
+size1000[7:9,3] <- apply(replicate(runs,one.trial.f3(1000)),1,sum)/runs
+```
+
+The figure \@ref(fig:ise) shows the ISE values. For the uniform distribution, the histograms and the KDE perform better than the local estimator. The differences between them are more noticeable when estimating on the large sample size, where the histogram has the lowest ISE, followed by the KDE and the local estimator; For the bimodal distribution, the performances of methods vary more with different sample sizes. The histograms estimates the density slightly better when having a small number of samples, however the ISE value for the KDE decreases significantly as the sample size increasing. The differences of three methods are distinctly on the large sample size, where the KDE catches the true density much better; For the log-normal distribution, both the KDE and the local estimation (ISE<0.3) have noticeably better performances than the histograms (ISE$\approx$0.8), within which the KDE is better than the local estimation and this feature becomes more clear when increasing the sample sizes. 
+
+Generally, the performances of methods are separated more distinctly on the large sample size, especially for complex densities. The results show that KDE can give markedly better performance when compare to the histogram and local estimation. 
+
+```{r ise,fig.cap="ISE for fixed sample size among different scenarios and methods"}
+p1<-ggplot(data = size250,mapping = aes(x=scenario,y=ise,group=method,shape = method))+
+  geom_point(aes(colour = method))+
+  geom_line(aes(color=method))+
+  labs(subtitle="sample size n=250")+
+  theme(legend.position = "top")
+
+p2<-ggplot(data = size500,mapping = aes(x=scenario,y=ise,group=method,shape = method))+
+  geom_point(aes(colour = method))+
+  geom_line(aes(color=method))+
+  labs(subtitle="sample size n=500")
+
+p3<-ggplot(data = size1000,mapping = aes(x=scenario,y=ise,group=method,shape = method))+
+  geom_point(aes(colour = method))+
+  geom_line(aes(color=method))+
+  labs(subtitle="sample size n=1000")
+
+legend <- get_legend(p1)
+# 3. Remove the legend from the box plot
+#+++++++++++++++++++++++
+p1 <- p1 + theme(legend.position="none")
+p2 <- p2 + theme(legend.position="none")
+p3 <- p3 + theme(legend.position="none")
+p=cowplot::plot_grid(p1, 
+                   p2 + theme(axis.text.y = element_blank(),
+                                    axis.ticks.y = element_blank(),
+                                    axis.title.y = element_blank() ), 
+                   p3 + theme(axis.text.y = element_blank(),
+                                    axis.ticks.y = element_blank(),
+                                    axis.title.y = element_blank() ),
+                   nrow = 1,
+                   align="v")
+# 4. Arrange ggplot2 graphs with a specific width
+
+grid.arrange(p, legend, ncol=1, nrow = 2, 
+             layout_matrix = rbind(c(1), c(2)), heights = c(2.0, 0.2))
+```
+
+## Disccusion
+
+In this report, we compared the histograms, the KDE and the local likelihood estimator in the density estimation for three scenarios using different fixed sample sizes. From the simulation study, the histograms lead to high ISE values for the heavy-tailed distribution. The KDE generally behave better for most of distributions. The local estimator only perform well on the heavy-tailed distribution. These differences become more distinctly with the increase of the sample size. The superiority of the KDE in this regard is confirmed by the smaller ISE values. 
+
+Although the KDE has the smooth estimated density and the better performance in general, the possible drawback of this method is the bias particularly near the boundaries [@zambom_review_2012]. The histograms are not smooth and sensitive to the choice of bins and bin edges, but it do estimate the bounded distribution better. Thus, choosing which method to estimate the true density should depend on the shape of current data density.
+
+In this report, only the default choices of bins and bandwidth are considered. However, these parameters actually affect the estimated density much[@deng_density_2014]. In the future study, the impact of these parameters might be investigated. 
+
+\newpage
+## Reference
 
